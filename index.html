@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Acompanhamento NF</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        .card-stat {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .card-alert {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        .card-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        .btn-floating {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .status-circle {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-green { background-color: #28a745; }
+        .status-yellow { background-color: #ffc107; }
+        .status-red { background-color: #dc3545; }
+        
+        @media (max-width: 768px) {
+            .col-md-4 { margin-bottom: 1rem; }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid px-3 py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="h3 mb-1 d-flex align-items-center">
+                    <i class="bi bi-clipboard-data me-2"></i>
+                    Sistema NF
+                </h1>
+                <small class="text-muted">Acompanhamento de Números de Nota Fiscal</small>
+            </div>
+        </div>
+
+        <!-- Status Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card card-stat h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-archive fs-1 mb-2"></i>
+                        <h3 class="card-title mb-0" id="currentStock">0</h3>
+                        <p class="card-text">Números Disponíveis</p>
+                        <small id="lastUpdate">Atualizado hoje</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card card-success h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-calendar-check fs-1 mb-2"></i>
+                        <h5 class="card-title mb-0" id="nextOrderDate">--/--/----</h5>
+                        <p class="card-text">Próximo Pedido</p>
+                        <small id="daysUntilOrder">-- dias</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card card-alert h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-speedometer2 fs-1 mb-2"></i>
+                        <h4 class="card-title mb-0" id="dailyUsage">0</h4>
+                        <p class="card-text">Uso Médio/Dia</p>
+                        <small id="usageStatus">Normal</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Alert -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert d-flex align-items-center" id="statusAlert" role="alert">
+                    <span class="status-circle" id="statusCircle"></span>
+                    <span id="statusMessage">Sistema carregando...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Update -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-pencil-square me-2"></i>
+                            Atualização Rápida
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-8">
+                                <input type="number" class="form-control" id="quickUpdateInput" 
+                                       placeholder="Números disponíveis hoje" min="0">
+                            </div>
+                            <div class="col-4">
+                                <button class="btn btn-primary w-100" onclick="quickUpdate()">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-database me-2"></i>
+                            Gerenciar Pedidos
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small">Data do Pedido</label>
+                                <input type="date" class="form-control" id="orderDate">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Quantidade</label>
+                                <input type="number" class="form-control" id="orderQuantity" 
+                                       value="2000" min="1">
+                            </div>
+                        </div>
+                        <button class="btn btn-success w-100 mb-2" onclick="addOrder()">
+                            <i class="bi bi-plus-circle me-2"></i>
+                            Registrar Pedido
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history me-2"></i>
+                            Histórico de Pedidos
+                        </h5>
+                        <button class="btn btn-sm btn-outline-danger" onclick="clearHistory()">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="historyList">
+                            <div class="list-group-item text-center text-muted py-4">
+                                Nenhum pedido registrado
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-gear me-2"></i>
+                            Configurações
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small">Prazo de Entrega (dias)</label>
+                                <input type="number" class="form-control" id="deliveryDays" 
+                                       value="3" min="1" max="30">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Estoque Mínimo</label>
+                                <input type="number" class="form-control" id="minStock" 
+                                       value="500" min="0">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Google Sheets URL (Futuro)</label>
+                            <input type="url" class="form-control" id="sheetsUrl" 
+                                   placeholder="https://docs.google.com/spreadsheets/..." disabled>
+                            <small class="text-muted">Funcionalidade em desenvolvimento</small>
+                        </div>
+                        <button class="btn btn-info w-100" onclick="saveSettings()">
+                            <i class="bi bi-check-lg me-2"></i>
+                            Salvar Configurações
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button class="btn btn-primary btn-floating" onclick="exportData()">
+        <i class="bi bi-download"></i>
+    </button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Dados do sistema
+        let systemData = {
+            orders: [],
+            dailyUpdates: [],
+            settings: {
+                deliveryDays: 3,
+                minStock: 500,
+                sheetsUrl: ''
+            }
+        };
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            updateDisplay();
+            
+            // Adicionar dados iniciais de exemplo se não existir histórico
+            if (systemData.orders.length === 0) {
+                addExampleData();
+            }
+        });
+
+        function addExampleData() {
+            systemData.orders = [
+                {
+                    date: '2025-02-18',
+                    quantity: 2000,
+                    id: Date.now() - 1000000
+                },
+                {
+                    date: '2025-07-25',
+                    quantity: 2000,
+                    id: Date.now() - 500000
+                }
+            ];
+            
+            // Atualização recente
+            systemData.dailyUpdates = [
+                {
+                    date: '2025-08-21',
+                    remaining: 623
+                }
+            ];
+            
+            saveData();
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('nf_system_data');
+            if (saved) {
+                systemData = { ...systemData, ...JSON.parse(saved) };
+            }
+            
+            // Aplicar configurações nos campos
+            document.getElementById('deliveryDays').value = systemData.settings.deliveryDays;
+            document.getElementById('minStock').value = systemData.settings.minStock;
+            document.getElementById('sheetsUrl').value = systemData.settings.sheetsUrl;
+        }
+
+        function saveData() {
+            localStorage.setItem('nf_system_data', JSON.stringify(systemData));
+        }
+
+        function calculateDailyUsage() {
+            if (systemData.orders.length === 0) return 0;
+            
+            // Pegar o último pedido
+            const sortedOrders = systemData.orders.sort((a, b) => new Date(b.date) - new Date(a.date));
+            const lastOrder = sortedOrders[0];
+            const currentStock = getCurrentStock();
+            
+            // Calcular dias desde o último pedido até hoje
+            const orderDate = new Date(lastOrder.date);
+            const today = new Date();
+            const daysSinceOrder = Math.ceil((today - orderDate) / (1000 * 60 * 60 * 24));
+            
+            // Se tem atualização manual, usar ela; senão estimar
+            let numbersUsed;
+            if (systemData.dailyUpdates.length > 0) {
+                // Usar a quantidade atual informada pelo usuário
+                numbersUsed = lastOrder.quantity - currentStock;
+            } else {
+                // Se não tem atualização, não conseguimos calcular precisamente
+                return 0;
+            }
+            
+            // Evitar divisão por zero e valores negativos
+            if (daysSinceOrder <= 0 || numbersUsed < 0) return 0;
+            
+            return Math.round(numbersUsed / daysSinceOrder);
+        }
+
+        function getCurrentStock() {
+            if (systemData.dailyUpdates.length === 0) {
+                // Se não há atualizações, calcular baseado no último pedido
+                if (systemData.orders.length > 0) {
+                    const lastOrder = systemData.orders.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                    const daysSince = Math.ceil((new Date() - new Date(lastOrder.date)) / (1000 * 60 * 60 * 24));
+                    const dailyUsage = calculateDailyUsage();
+                    return Math.max(0, lastOrder.quantity - (daysSince * dailyUsage));
+                }
+                return 0;
+            }
+            
+            // Pegar a atualização mais recente
+            const lastUpdate = systemData.dailyUpdates.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+            return lastUpdate.remaining;
+        }
+
+        function predictNextOrderDate() {
+            const currentStock = getCurrentStock();
+            const dailyUsage = calculateDailyUsage();
+            
+            if (dailyUsage === 0) return null;
+            
+            const daysUntilMinStock = Math.floor((currentStock - systemData.settings.minStock) / dailyUsage);
+            const orderDate = new Date();
+            orderDate.setDate(orderDate.getDate() + Math.max(0, daysUntilMinStock - systemData.settings.deliveryDays));
+            
+            return orderDate;
+        }
+
+        function getStatusInfo() {
+            const currentStock = getCurrentStock();
+            const minStock = systemData.settings.minStock;
+            
+            if (currentStock <= minStock * 0.5) {
+                return {
+                    class: 'alert-danger',
+                    circle: 'status-red',
+                    message: `🚨 CRÍTICO: Apenas ${currentStock} números restantes! Peça urgentemente.`,
+                    status: 'Crítico'
+                };
+            } else if (currentStock <= minStock) {
+                return {
+                    class: 'alert-warning',
+                    circle: 'status-yellow',
+                    message: `⚠️ ATENÇÃO: Estoque baixo com ${currentStock} números. Prepare o pedido.`,
+                    status: 'Atenção'
+                };
+            } else {
+                return {
+                    class: 'alert-success',
+                    circle: 'status-green',
+                    message: `✅ OK: ${currentStock} números disponíveis. Situação controlada.`,
+                    status: 'Normal'
+                };
+            }
+        }
+
+        function updateDisplay() {
+            const currentStock = getCurrentStock();
+            const dailyUsage = calculateDailyUsage();
+            const nextOrderDate = predictNextOrderDate();
+            const statusInfo = getStatusInfo();
+            
+            // Atualizar cards principais
+            document.getElementById('currentStock').textContent = currentStock.toLocaleString();
+            document.getElementById('dailyUsage').textContent = dailyUsage;
+            document.getElementById('usageStatus').textContent = statusInfo.status;
+            
+            // Mostrar detalhes do cálculo se houver dados
+            if (dailyUsage > 0 && systemData.orders.length > 0) {
+                const lastOrder = systemData.orders.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                const orderDate = new Date(lastOrder.date);
+                const today = new Date();
+                const daysSince = Math.ceil((today - orderDate) / (1000 * 60 * 60 * 24));
+                const numbersUsed = lastOrder.quantity - currentStock;
+                
+                document.getElementById('usageStatus').textContent = `${numbersUsed} usados em ${daysSince} dias`;
+            }
+            
+            // Próximo pedido
+            if (nextOrderDate) {
+                document.getElementById('nextOrderDate').textContent = nextOrderDate.toLocaleDateString('pt-BR');
+                const daysUntil = Math.ceil((nextOrderDate - new Date()) / (1000 * 60 * 60 * 24));
+                document.getElementById('daysUntilOrder').textContent = `${daysUntil} dias`;
+            }
+            
+            // Status alert
+            const alertElement = document.getElementById('statusAlert');
+            alertElement.className = `alert d-flex align-items-center ${statusInfo.class}`;
+            document.getElementById('statusCircle').className = `status-circle ${statusInfo.circle}`;
+            document.getElementById('statusMessage').textContent = statusInfo.message;
+            
+            // Última atualização
+            if (systemData.dailyUpdates.length > 0) {
+                const lastUpdate = systemData.dailyUpdates.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                const updateDate = new Date(lastUpdate.date);
+                const today = new Date();
+                
+                if (updateDate.toDateString() === today.toDateString()) {
+                    document.getElementById('lastUpdate').textContent = 'Atualizado hoje';
+                } else {
+                    const daysDiff = Math.ceil((today - updateDate) / (1000 * 60 * 60 * 24));
+                    document.getElementById('lastUpdate').textContent = `Atualizado há ${daysDiff} dia(s)`;
+                }
+            }
+            
+            updateHistoryDisplay();
+        }
+
+        function quickUpdate() {
+            const input = document.getElementById('quickUpdateInput');
+            const remaining = parseInt(input.value);
+            
+            if (isNaN(remaining) || remaining < 0) {
+                alert('Por favor, insira um número válido');
+                return;
+            }
+            
+            // Adicionar ou atualizar registro do dia
+            const today = new Date().toISOString().split('T')[0];
+            const existingIndex = systemData.dailyUpdates.findIndex(u => u.date === today);
+            
+            if (existingIndex >= 0) {
+                systemData.dailyUpdates[existingIndex].remaining = remaining;
+            } else {
+                systemData.dailyUpdates.push({
+                    date: today,
+                    remaining: remaining
+                });
+            }
+            
+            input.value = '';
+            saveData();
+            updateDisplay();
+            
+            // Feedback visual
+            const btn = event.target;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+            btn.classList.add('btn-success');
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('btn-success');
+            }, 1000);
+        }
+
+        function addOrder() {
+            const date = document.getElementById('orderDate').value;
+            const quantity = parseInt(document.getElementById('orderQuantity').value);
+            
+            if (!date || isNaN(quantity) || quantity <= 0) {
+                alert('Por favor, preencha todos os campos corretamente');
+                return;
+            }
+            
+            systemData.orders.push({
+                date: date,
+                quantity: quantity,
+                id: Date.now()
+            });
+            
+            // Limpar campos
+            document.getElementById('orderDate').value = '';
+            document.getElementById('orderQuantity').value = '2000';
+            
+            saveData();
+            updateDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            
+            if (systemData.orders.length === 0) {
+                historyList.innerHTML = `
+                    <div class="list-group-item text-center text-muted py-4">
+                        Nenhum pedido registrado
+                    </div>
+                `;
+                return;
+            }
+            
+            const sortedOrders = systemData.orders.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            historyList.innerHTML = sortedOrders.map(order => `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${new Date(order.date).toLocaleDateString('pt-BR')}</strong>
+                        <br>
+                        <small class="text-muted">${order.quantity.toLocaleString()} números</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeOrder(${order.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function removeOrder(id) {
+            if (confirm('Remover este pedido do histórico?')) {
+                systemData.orders = systemData.orders.filter(order => order.id !== id);
+                saveData();
+                updateDisplay();
+            }
+        }
+
+        function clearHistory() {
+            if (confirm('Limpar todo o histórico de pedidos? Esta ação não pode ser desfeita.')) {
+                systemData.orders = [];
+                systemData.dailyUpdates = [];
+                saveData();
+                updateDisplay();
+            }
+        }
+
+        function saveSettings() {
+            systemData.settings.deliveryDays = parseInt(document.getElementById('deliveryDays').value);
+            systemData.settings.minStock = parseInt(document.getElementById('minStock').value);
+            systemData.settings.sheetsUrl = document.getElementById('sheetsUrl').value;
+            
+            saveData();
+            updateDisplay();
+            
+            alert('Configurações salvas com sucesso!');
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(systemData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `nf_system_backup_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        // Auto-save settings when changed
+        ['deliveryDays', 'minStock', 'sheetsUrl'].forEach(id => {
+            document.getElementById(id).addEventListener('change', saveSettings);
+        });
+
+        // Set today's date as default
+        document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
